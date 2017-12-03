@@ -9,6 +9,7 @@ from gevent import socket
 from .base_ssh2_test import SSH2TestCase
 from .embedded_server.openssh import OpenSSHServer
 from pssh.ssh2_client import SSHClient, logger as ssh_logger
+from pssh.tunnel import Tunnel
 from ssh2.session import Session
 from pssh.exceptions import AuthenticationException, ConnectionErrorException, \
     SessionError
@@ -115,3 +116,30 @@ class SSH2ClientTest(SSH2TestCase):
         self.assertRaises(ConnectionErrorException,
                           SSHClient, self.host, port=12345,
                           num_retries=2)
+
+    def test_direct_tcpip(self):
+        from ssh2.session import Session
+        # from socket import socket as pysock
+        from gevent import spawn, sleep
+        self.client.session.set_blocking(1)
+        chan = self.client.session.direct_tcpip(self.host, 22)
+        # chan = self.client.session.direct_tcpip(self.host, 1234)
+        self.client.session.set_blocking(0)
+        t = Tunnel(chan)
+        t.run()
+        # tunnel = spawn(t.run)
+        # sleep(0)
+        # tunnel.start()
+        # t.daemon = True
+        # t.start()
+        # import ipdb; ipdb.set_trace()
+        # client = SSHClient(self.host, port=t.listen_port,
+        #                    num_retries=1,
+        #                    pkey=self.user_key)
+        import ipdb; ipdb.set_trace()
+        
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self.host, t.listen_port))
+        session = Session()
+        sleep(.5)
+        session.handshake(sock)
