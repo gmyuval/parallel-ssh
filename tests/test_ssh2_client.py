@@ -120,26 +120,46 @@ class SSH2ClientTest(SSH2TestCase):
     def test_direct_tcpip(self):
         from ssh2.session import Session
         # from socket import socket as pysock
-        from gevent import spawn, sleep
-        self.client.session.set_blocking(1)
-        chan = self.client.session.direct_tcpip(self.host, 22)
-        # chan = self.client.session.direct_tcpip(self.host, 1234)
-        self.client.session.set_blocking(0)
-        t = Tunnel(chan)
-        t.run()
-        # tunnel = spawn(t.run)
-        # sleep(0)
-        # tunnel.start()
+        from gevent import spawn, sleep, joinall, wait
+        # self.client.session.set_blocking(1)
+        # chan = client.session.direct_tcpip(self.host, 22)
+        # chan = client.session.direct_tcpip(self.host, 1234)
+        # client.session.set_blocking(0)
+        t = Tunnel(self.client.session, self.host, 22, listen_port=2223)
+        # t.start()
+        # t.get()
+        # t.run()
+        tunnel = spawn(t.run)
+        tunnel.start()
+        tunnel.get()
+        # sleep(.5)
         # t.daemon = True
         # t.start()
         # import ipdb; ipdb.set_trace()
+        ####
+        # sleep(.5)
         # client = SSHClient(self.host, port=t.listen_port,
         #                    num_retries=1,
-        #                    pkey=self.user_key)
-        import ipdb; ipdb.set_trace()
+        #                    pkey=self.user_key,
+        #                    timeout=2)
+        # # client.start()
+        # joinall((tunnel,), raise_error=True)
+        # import ipdb; ipdb.set_trace()
+        # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # sock.connect((self.host, t.listen_port))
+        # sleep(0)
+        # session = Session()
+        # sleep(.5)
+        # session.handshake(sock)
+        # client = spawn(SSHClient, self.host, port=t.listen_port,
+        #                pkey=self.user_key,
+        #                num_retries=1)
+        # client.start()
+        # wait()
+        # import ipdb; ipdb.set_trace()
+        # sleep(2)
+        # joinall((tunnel, client))
+        # client = SSHClient(self.host, port=t.listen_port,
+        #                    pkey=self.user_key,
+        #                    num_retries=1)
         
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((self.host, t.listen_port))
-        session = Session()
-        sleep(.5)
-        session.handshake(sock)
