@@ -46,7 +46,7 @@ from .tunnel import Tunnel
 Hub.NOT_ERROR = (Exception,)
 host_logger = logging.getLogger('pssh.host_logger')
 logger = logging.getLogger(__name__)
-THREAD_POOL = get_hub().threadpool
+# THREAD_POOL = get_hub().threadpool
 
 
 class SSHClient(object):
@@ -101,7 +101,7 @@ class SSHClient(object):
         self.port = port if port else 22
         self.pkey = pkey
         self.num_retries = num_retries
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock = None
         self.timeout = timeout * 1000 if timeout else None
         self.retry_delay = retry_delay
         self.allow_agent = allow_agent
@@ -111,20 +111,19 @@ class SSHClient(object):
         self.tunnel = None
         # self._connect_tunnel()
         self.session = None
-        # import ipdb; ipdb.set_trace()
         self._connect(self.host, self.port)
         self._init()
         # THREAD_POOL.apply(self._init)
 
-    def _connect_tunnel(self):
-        self._connect(self.proxy_host, self.proxy_port)
-        self._init()
-        self.session.set_blocking(1)
-        proxy_chan = self.session.direct_tcpip(self.host, self.port)
-        self.session.set_blocking(0)
-        tunnel = Tunnel(proxy_chan)
-        tunnel.start()
-        self.tunnel = tunnel
+    # def _connect_tunnel(self):
+    #     self._connect(self.proxy_host, self.proxy_port)
+    #     self._init()
+    #     self.session.set_blocking(1)
+    #     proxy_chan = self.session.direct_tcpip(self.host, self.port)
+    #     self.session.set_blocking(0)
+    #     tunnel = Tunnel(proxy_chan)
+    #     tunnel.start()
+    #     self.tunnel = tunnel
 
     def _init(self):
         # import ipdb; ipdb.set_trace()
@@ -144,6 +143,7 @@ class SSHClient(object):
         self.session.set_blocking(0)
 
     def _connect(self, host, port, retries=1):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         logger.debug("Connecting to %s:%s", host, port)
         try:
             self.sock.connect((host, port))
