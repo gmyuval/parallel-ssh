@@ -25,7 +25,7 @@ else:
     WIN_PLATFORM = False
 from socket import gaierror as sock_gaierror, error as sock_error
 
-from gevent import sleep, get_hub, socket, spawn
+from gevent import sleep, socket, get_hub
 from gevent.hub import Hub
 from ssh2.error_codes import LIBSSH2_ERROR_EAGAIN
 from ssh2.exceptions import AuthenticationError, AgentError, \
@@ -40,13 +40,12 @@ from .exceptions import UnknownHostException, AuthenticationException, \
      ConnectionErrorException, SessionError, SFTPError, SFTPIOError
 from .constants import DEFAULT_RETRIES, RETRY_DELAY
 from .native._ssh2 import wait_select, _read_output  # , sftp_get, sftp_put
-from .tunnel import Tunnel
 
 
 Hub.NOT_ERROR = (Exception,)
 host_logger = logging.getLogger('pssh.host_logger')
 logger = logging.getLogger(__name__)
-# THREAD_POOL = get_hub().threadpool
+THREAD_POOL = get_hub().threadpool
 
 
 class SSHClient(object):
@@ -63,9 +62,7 @@ class SSHClient(object):
                  pkey=None,
                  num_retries=DEFAULT_RETRIES,
                  retry_delay=RETRY_DELAY,
-                 allow_agent=True, timeout=None,
-                 proxy_host=None, proxy_port=22, proxy_user=None,
-                 proxy_password=None, proxy_pkey=None):
+                 allow_agent=True, timeout=None):
         """:param host: Host name or IP to connect to.
         :type host: str
         :param user: User to connect as. Defaults to logged in user.
@@ -93,9 +90,9 @@ class SSHClient(object):
         """
         self.host = host
         self.user = user if user else None
-        if self.user is None and WIN_PLATFORM is False:
+        if self.user is None and not WIN_PLATFORM:
             self.user = pwd.getpwuid(os.geteuid()).pw_name
-        elif self.user is None and WIN_PLATFORM is True:
+        elif self.user is None and WIN_PLATFORM:
             raise ValueError("Must provide user parameter on Windows")
         self.password = password
         self.port = port if port else 22
@@ -105,39 +102,35 @@ class SSHClient(object):
         self.timeout = timeout * 1000 if timeout else None
         self.retry_delay = retry_delay
         self.allow_agent = allow_agent
-        self.proxy_host, self.proxy_port = proxy_host, proxy_port
-        self.proxy_user, self.proxy_pkey = proxy_user, proxy_pkey
-        self.proxy_password = proxy_password
-        self.tunnel = None
-        # self._connect_tunnel()
         self.session = None
         self._connect(self.host, self.port)
-        self._init()
-        # THREAD_POOL.apply(self._init)
+        THREAD_POOL.apply(self._init)
 
-    # def _connect_tunnel(self):
-    #     self._connect(self.proxy_host, self.proxy_port)
-    #     self._init()
-    #     self.session.set_blocking(1)
-    #     proxy_chan = self.session.direct_tcpip(self.host, self.port)
-    #     self.session.set_blocking(0)
-    #     tunnel = Tunnel(proxy_chan)
-    #     tunnel.start()
-    #     self.tunnel = tunnel
+    def _connect_init_retry(self, retries):
+        retries += 1
+        self.session = None
+        if not self.sock.closed:
+            self.sock.close()
+        sleep(self.retry_delay)
+        self._connect(self.host, self.port, retries=retries)
+        return self._init(retries=retries)
 
-    def _init(self):
-        # import ipdb; ipdb.set_trace()
+    def _init(self, retries=1):
         self.session = Session()
         if self.timeout:
             self.session.set_timeout(self.timeout)
         try:
             self.session.handshake(self.sock)
         except SessionHandshakeError as ex:
+            while retries < self.num_retries:
+                return self._connect_init_retry(retries)
             msg = "Error connecting to host %s:%s - %s"
             raise SessionError(msg, self.host, self.port, ex)
         try:
             self.auth()
         except AuthenticationError as ex:
+            while retries < self.num_retries:
+                return self._connect_init_retry(retries)
             msg = "Authentication error while connecting to %s:%s - %s"
             raise AuthenticationException(msg, self.host, self.port, ex)
         self.session.set_blocking(0)

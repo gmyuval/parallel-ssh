@@ -905,7 +905,9 @@ class ParallelSSHClientTest(unittest.TestCase):
             host_config[host]['private_key'] = self.user_key
             servers.append(server)
         host_config[hosts[1][0]]['private_key'] = fake_key
-        client = ParallelSSHClient([h for h, _ in hosts], host_config=host_config)
+        client = ParallelSSHClient([h for h, _ in hosts],
+                                   host_config=host_config,
+                                   num_retries=1)
         output = client.run_command(self.cmd, stop_on_errors=False)
         client.join(output)
         for host, _ in hosts:

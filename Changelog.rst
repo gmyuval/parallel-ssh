@@ -1,6 +1,17 @@
 Change Log
 ============
 
+1.3.0
+++++++
+
+Changes
+---------
+
+* Native clients tunnelling implementation
+* Native clients connection and authentication retry mechanism
+
+Tunnelling implementation is experimental - please report any issues.
+
 1.2.1
 ++++++
 

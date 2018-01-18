@@ -79,8 +79,8 @@ class ParallelSSHClient(BaseParallelSSHClient):
         """Run command on all hosts in parallel, honoring self.pool_size,
         and return output dictionary.
 
-        This function will block until all commands have been successfully
-        received by remote servers and then return immediately.
+        This function will block until all commands have been received
+        by remote servers and then return immediately.
 
         More explicitly, function will return after connection and
         authentication establishment and after commands have been accepted by
