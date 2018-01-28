@@ -7,10 +7,10 @@ Change Log
 Changes
 ---------
 
-* Native clients tunnelling implementation
+* Native clients proxy implementation
 * Native clients connection and authentication retry mechanism
 
-Tunnelling implementation is experimental - please report any issues.
+Proxy/tunnelling implementation is experimental - please report any issues.
 
 1.2.1
 ++++++

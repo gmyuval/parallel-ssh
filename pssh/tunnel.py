@@ -11,8 +11,6 @@ from .constants import DEFAULT_RETRIES, RETRY_DELAY
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logging.basicConfig()
 
 
 class Tunnel(Thread):
@@ -28,7 +26,7 @@ class Tunnel(Thread):
         self.socket = None
         self.listen_port = listen_port
         self.fw_host = fw_host
-        self.fw_port = fw_port
+        self.fw_port = fw_port if fw_port else 22
         self.channel = None
         self.forward_sock = None
         self.host = host
